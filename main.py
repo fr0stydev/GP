@@ -47,12 +47,13 @@ def searchsploit(assets: dict) -> dict:
                 url = re.findall(regex,out)
                 
                 if len(url) == 0:
-                    return None
+                    print("No url found for {} {}".format(key,value))
 
                 
                 url_list = [x[0] for x in url]
                 headers = {'User-Agent': 'Mozilla/5.0'}
                 for i in url_list:
+                    not_accurate = False
                     exploit_database = {}
                     cve_id = []
                     cve_url = []
@@ -85,8 +86,7 @@ def searchsploit(assets: dict) -> dict:
                         link = elem['href']
                         cve_url.append(link)
                         ID += link.rsplit('/', 1)[-1]
-                        cve_id.append(ID)
-                    
+                        cve_id.append(ID) 
 
                     #For each exploit, assign CVE-ID, CVE-URL, Title
                     #However if there is no CVE-ID, skip it and don't add it to the results
@@ -110,10 +110,10 @@ def searchsploit(assets: dict) -> dict:
 
                     
                     
-                    output.append(exploit_database)       
+                    output.append(exploit_database)
                 return output
 
-    return CVE_search()
+            return CVE_search()
 
                 
 #Takes the output of SearchSploit and looks for the CVE-ID of the exploit if it exists
