@@ -5,7 +5,7 @@ from subprocess import check_output
 import re
 from bs4 import BeautifulSoup, SoupStrainer
 from tqdm import tqdm
-
+from termcolor import colored, cprint
 
 
 # Returns Dictionary with Key being name of service and value being version number
@@ -29,15 +29,13 @@ def get_version(url: str) -> dict:
     
 
 #Executes Searchsploit and returns the output of command as a string
-def searchsploit(assets: dict) -> str:
+def searchsploit(assets: dict) -> dict:
     for key, value in assets.items():
         if value == None:
             continue
         else:
             out = check_output(["searchsploit", "-w", "--colour", key, value]).decode("utf-8")
-            print("Checking results for {} {}".format(key, value))
-            split = out.split('\n')
-            
+            cprint("Checking results for {} {}".format(key, value), 'red')
             #split output ['Exploit: ------------', 'URL: -------------------', '']
             print(out)
              
@@ -49,26 +47,35 @@ def searchsploit(assets: dict) -> str:
                 url = re.findall(regex,out)
                 
                 if len(url) == 0:
-                    print("No exploits were found!")
                     return None
 
                 
                 url_list = [x[0] for x in url]
                 headers = {'User-Agent': 'Mozilla/5.0'}
                 for i in url_list:
-
                     exploit_database = {}
                     cve_id = []
                     cve_url = []
                     cvss = []
+                    banned_words = ['component', 'plugin', 'extension']
                     page = requests.get(i, headers=headers)
                     soup = BeautifulSoup(page.text, 'html.parser')
                     soup.prettify()
                     title = soup.find('title').string
                     split_title = title.split()
-        
                     #Skip CVE-Search for non exact match example: SilverStripe != Stripe so it skips it
                     if key not in split_title:
+                        continue
+
+                    #If current third party wapp name neighboring word is in banned_words. Skip it
+                    #For example Wordpress Plugin does not equal Wordpress so skip it
+                    for y in range(len(split_title)):
+                        if split_title[y] == key:
+                            if split_title[y + 1].lower() in banned_words:
+                                not_accurate = True
+                                break 
+
+                    if not_accurate:
                         continue
 
                     #Finds all link with domain nvd.nist.gov and makes it into a list
@@ -104,27 +111,39 @@ def searchsploit(assets: dict) -> str:
                     
                     
                     output.append(exploit_database)       
-                    
                 return output
-            CVE_search()
+
+    return CVE_search()
 
                 
 #Takes the output of SearchSploit and looks for the CVE-ID of the exploit if it exists
 #Output should be [{"CVE-ID": "CVE-1024", "Name": "Exploit Title", "URL":, "https://exploit-db/24324", "CVE-SCore": 7.8}]
 
 #Takes the data generated in CVE_Search() and ranks the exploit by CVSS
-def ranking():
-    data = {}
-    for item in output:
+#Filters the data and removes any inaccuracy EX: Wordpress does not equal Wordpress Plugin
+def filter(database: dict) -> dict:
+    data = []
+
+    #Removes items that have CVSS-Score rated as below medium
+   
+    for item in database:
         if item['CVSS-SCORE'] < 3.9:
             continue
+        else:
+            data.append(item)
 
+    #Sorts CVSS-SCORE from greatest to least
+    return sorted(data, key = lambda i: i['CVSS-SCORE'], reverse=True)
 
 
 def main(url: str):
     components = get_version(url)
     exploits = searchsploit(components)
-
+    if exploits == None:
+        cprint("Cannot find any useful exploits!", 'red')
+        return
+    sort_exploits = filter(exploits)
+    print(sort_exploits)
 
 if __name__ == "__main__":
     print("""
@@ -135,7 +154,7 @@ if __name__ == "__main__":
     \  /\  /| (_| || |_) || |_) |____) || |_) || || (_) || || |_ 
      \/  \/  \__,_|| .__/ | .__/|_____/ | .__/ |_| \___/ |_| \__|
                    | |    | |           | |                      
-                   |_|    |_|           |_|                      """ )
+                   |_|    |_|           |_|                      """)
     parser = argparse.ArgumentParser(description="Scans URL for components with exploits in Exploit-DB")
     parser.add_argument("url", help="URL to scan")
     args = parser.parse_args()
