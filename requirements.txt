@@ -2,4 +2,4 @@ beautifulsoup4
 tqdm
 requests
 termcolor
-
+tabulate

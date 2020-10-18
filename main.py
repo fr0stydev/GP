@@ -6,6 +6,7 @@ import re
 from bs4 import BeautifulSoup, SoupStrainer
 from tqdm import tqdm
 from termcolor import colored, cprint
+import tabulate
 
 
 # Returns Dictionary with Key being name of service and value being version number
@@ -15,6 +16,7 @@ def get_version(url: str) -> dict:
     assets = {}
     r = requests.get(lookup_url)
     data = r.json()
+    print(data)
     for vuln in tqdm(data['technologies'], desc="Revealing the technology stack..."):
         if vuln['name'] not in assets:
             if vuln['version'] == None:
@@ -30,6 +32,8 @@ def get_version(url: str) -> dict:
 
 #Executes Searchsploit and returns the output of command as a string
 def searchsploit(assets: dict) -> dict:
+    if len(assets) == 0:
+        return  []
     for key, value in assets.items():
         if value == None:
             continue
@@ -47,7 +51,7 @@ def searchsploit(assets: dict) -> dict:
                 url = re.findall(regex,out)
                 
                 if len(url) == 0:
-                    print("No url found for {} {}".format(key,value))
+                    print('No exploits found for {} {}'.format(key, value))
 
                 
                 url_list = [x[0] for x in url]
@@ -135,15 +139,20 @@ def filter(database: dict) -> dict:
     #Sorts CVSS-SCORE from greatest to least
     return sorted(data, key = lambda i: i['CVSS-SCORE'], reverse=True)
 
+def print_to_table(data: list):
+    header = data[0].keys()
+    rows = [x.values() for x in data]
+    print(tabulate.tabulate(rows, header))
 
 def main(url: str):
     components = get_version(url)
     exploits = searchsploit(components)
-    if exploits == None:
-        cprint("Cannot find any useful exploits!", 'red')
+    if len(exploits) == 0:
+        cprint("Cannot find any existing exploits on the site's technology stack!", 'green')
         return
-    sort_exploits = filter(exploits)
-    print(sort_exploits)
+    else:
+        sort_exploits = filter(exploits)
+        print_to_table(sort_exploits)
 
 if __name__ == "__main__":
     print("""
