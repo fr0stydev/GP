@@ -32,6 +32,7 @@ def get_version(url: str) -> dict:
 
 #Executes Searchsploit and returns the output of command as a string
 def searchsploit(assets: dict) -> dict:
+    output = []
     if len(assets) == 0:
         return  []
     for key, value in assets.items():
@@ -44,14 +45,13 @@ def searchsploit(assets: dict) -> dict:
             print(out)
              
             def CVE_search():
-                output = []
 
                 regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 
                 url = re.findall(regex,out)
                 
                 if len(url) == 0:
-                    print('No exploits found for {} {}'.format(key, value))
+                    print('No exploits found for {} {}\n'.format(key, value))
 
                 
                 url_list = [x[0] for x in url]
@@ -115,9 +115,10 @@ def searchsploit(assets: dict) -> dict:
                     
                     
                     output.append(exploit_database)
-                return output
+        
 
-            return CVE_search()
+            CVE_search()
+    return output    
 
                 
 #Takes the output of SearchSploit and looks for the CVE-ID of the exploit if it exists
@@ -142,7 +143,12 @@ def filter(database: dict) -> dict:
 def print_to_table(data: list):
     header = data[0].keys()
     rows = [x.values() for x in data]
-    print(tabulate.tabulate(rows, header))
+    return tabulate.tabulate(rows, header)
+
+def to_file(data: str):
+    text_file = open("output.txt" , "w")
+    text_file.write(data)
+    text_file.close()
 
 def main(url: str):
     components = get_version(url)
@@ -152,7 +158,9 @@ def main(url: str):
         return
     else:
         sort_exploits = filter(exploits)
-        print_to_table(sort_exploits)
+        table = print_to_table(sort_exploits)
+        to_file(table)
+
 
 if __name__ == "__main__":
     print("""
