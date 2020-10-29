@@ -95,7 +95,7 @@ def searchsploit(assets: dict) -> dict:
                     #For each exploit, assign CVE-ID, CVE-URL, Title
                     #However if there is no CVE-ID, skip it and don't add it to the results
                     if len(cve_id) == 0:
-                        print("No details found for {} \n".format(i))
+                        cprint("No details found for {}".format(i), 'white', 'on_red')
                         continue
                     
                     cve_api = "https://cve.circl.lu/api/cve/"
@@ -149,6 +149,7 @@ def to_file(data: str):
     text_file = open("output.txt" , "w")
     text_file.write(data)
     text_file.close()
+    cprint('Created a report in the current directory named output.txt', 'green')
 
 def main(url: str):
     components = get_version(url)

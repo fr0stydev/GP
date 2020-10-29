@@ -46,6 +46,7 @@ app.get('/extract', (req, res) => {
     site.on('error', console.error)
 
     const results = await site.analyze()
+	  console.log(results)
 
     res.send(JSON.stringify(results, null, 2))
   } catch (error) {
