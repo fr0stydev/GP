@@ -16,7 +16,6 @@ def get_version(url: str) -> dict:
     assets = {}
     r = requests.get(lookup_url)
     data = r.json()
-    print(data)
     for vuln in tqdm(data['technologies'], desc="Revealing the technology stack..."):
         if vuln['name'] not in assets:
             if vuln['version'] == None:
@@ -26,7 +25,8 @@ def get_version(url: str) -> dict:
             else:
                 assets[vuln['name']] = None
 
-    print(assets)
+    for key, value in assets.items():
+        cprint("Detected {} {} \n".format(key, value), 'green')
     return assets
     
 
@@ -62,7 +62,7 @@ def searchsploit(assets: dict) -> dict:
                     cve_id = []
                     cve_url = []
                     cvss = []
-                    banned_words = ['component', 'plugin', 'extension']
+                    banned_words = ['component', 'theme', 'plugin', 'extension', 'tomcat', 'struts', 'mod_ssl', 'couchedb']
                     page = requests.get(i, headers=headers)
                     soup = BeautifulSoup(page.text, 'html.parser')
                     soup.prettify()
