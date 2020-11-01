@@ -66,7 +66,7 @@ def searchsploit(assets: dict) -> dict:
             cprint("Checking results for {} {}".format(key, value), 'red')
             print(cms_out)
             exploits = CVE_search(out, key, value)
-            #Loop through output from CVE_search [[{'Summary': 'etc', 'CVSS-ID': 3.5}, {'Summary': 'etc1', 'CVSS-ID': 3.8}]]
+            #Loop through output from CVE_search [{'Summary': 'etc', 'CVSS-ID': 3.5}, {'Summary': 'etc1', 'CVSS-ID': 3.8}]
             for i in exploits:
                 output.append(i) #output = [{'Summary': 'etc', 'CVSS-ID': 3.5}, {'Summary': 'etc1', 'CVSS-ID': 3.8}]
         else:
@@ -154,7 +154,7 @@ def CVE_search(out, key, value):
         exploit_database["Exploit-URL"] = i
         output.append(exploit_database)
         
-        
+    #output sample [{'Summary': 'etc', 'CVSS-ID': 3.5}, {'Summary': 'etc1', 'CVSS-ID': 3.8}]
     return output      
 #Takes the output of SearchSploit and looks for the CVE-ID of the exploit if it exists
 #Output should be [{"CVE-ID": "CVE-1024", "Name": "Exploit Title", "URL":, "https://exploit-db/24324", "CVE-SCore": 7.8}]
