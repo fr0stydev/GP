@@ -11,12 +11,14 @@ import tabulate
 
 # Returns Dictionary with Key being name of service and value being version number
 def get_version(url: str) -> dict:
-    wappylyzer_url = "http://localhost:3000/extract?url="
-    lookup_url = wappylyzer_url + url
+    wappalyzer_url = "http://localhost:3000/extract?url="
+    lookup_url = wappalyzer_url + url
     assets = {}
     r = requests.get(lookup_url)
     data = r.json()
+    print(data)
     for vuln in tqdm(data['technologies'], desc="Revealing the technology stack..."):
+        print(vuln['categories'][0]['name'])
         if vuln['name'] not in assets:
             if vuln['version'] == None:
                 continue
@@ -28,99 +30,120 @@ def get_version(url: str) -> dict:
     for key, value in assets.items():
         cprint("Detected {} {} \n".format(key, value), 'green')
     return assets
-    
+
+#Only Checks for CMS but even if no version is detected it will save to dictionary
+#Ex: assets = {'Grav': None, 'WordPress': 5.0.0}
+
+def cms_checker(url: str) -> dict:
+    wappalzyer_url = "http://localhost:3000/extract?url="
+    lookup_url = wappalyzer_url + url
+    assets = {}
+    r = requests.get(lookup_url)
+    data = r.json()
+    for vuln in tqdm(data['technologies'], desc="Revealing the technology stack..."):
+        if vuln['categories'][0]['name'] == 'CMS':
+            if vuln['name'] not in assets:
+                if vuln['version'] == None:
+                    assets[vuln['name']] = 'CMS'
+                else:
+                    assets[vuln['name']] = vuln['version']
+    for key, value in assets.items():
+        if key == None:
+            cprint("Detected {} but couldn't detect version".format(key), 'green')
+        else:
+            cprint("Detected {} {} \n".format(key, value), 'green')
+    return assets
+        
 
 #Executes Searchsploit and returns the output of command as a string
 def searchsploit(assets: dict) -> dict:
-    output = []
     if len(assets) == 0:
         return  []
     for key, value in assets.items():
-        if value == None:
-            continue
+        if value == 'CMS':
+            cms_out = check_output(["searchsploit", "-w", "--colour", key]).decode("utf-8")
+            cprint("Checking results for {} {}".format(key, value), 'red')
+            print(cms_out)
         else:
             out = check_output(["searchsploit", "-w", "--colour", key, value]).decode("utf-8")
             cprint("Checking results for {} {}".format(key, value), 'red')
             #split output ['Exploit: ------------', 'URL: -------------------', '']
             print(out)
-             
-            def CVE_search():
+            return CVE_search(out, key, value) 
 
-                regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
+#out = output from searchsploit, key = Name, value = Version
+def CVE_search(out, key, value):
+    output = []
+    regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 
-                url = re.findall(regex,out)
-                
-                if len(url) == 0:
-                    print('No exploits found for {} {}\n'.format(key, value))
+    url = re.findall(regex,out)
 
-                
-                url_list = [x[0] for x in url]
-                headers = {'User-Agent': 'Mozilla/5.0'}
-                for i in url_list:
-                    not_accurate = False
-                    exploit_database = {}
-                    cve_id = []
-                    cve_url = []
-                    cvss = []
-                    banned_words = ['component', 'theme', 'plugin', 'extension', 'tomcat', 'struts', 'mod_ssl', 'couchedb']
-                    page = requests.get(i, headers=headers)
-                    soup = BeautifulSoup(page.text, 'html.parser')
-                    soup.prettify()
-                    title = soup.find('title').string
-                    split_title = title.split()
-                    #Skip CVE-Search for non exact match example: SilverStripe != Stripe so it skips it
-                    if key not in split_title:
-                        continue
+    if len(url) == 0:
+        print('No exploits found for {} {}\n'.format(key, value))
 
-                    #If current third party wapp name neighboring word is in banned_words. Skip it
-                    #For example Wordpress Plugin does not equal Wordpress so skip it
-                    for y in range(len(split_title)):
-                        if split_title[y] == key:
-                            if split_title[y + 1].lower() in banned_words:
-                                not_accurate = True
-                                break 
 
-                    if not_accurate:
-                        continue
+    url_list = [x[0] for x in url]
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    for i in url_list:
+        not_accurate = False
+        exploit_database = {}
+        cve_id = []
+        cve_url = []
+        cvss = []
+        banned_words = ['component', 'theme', 'plugin', 'extension', 'tomcat', 'struts', 'mod_ssl', 'couchedb']
+        page = requests.get(i, headers=headers)
+        soup = BeautifulSoup(page.text, 'html.parser')
+        soup.prettify()
+        title = soup.find('title').string
+        split_title = title.split()
+        #Skip CVE-Search for non exact match example: SilverStripe != Stripe so it skips it
+        if key not in split_title:
+            continue
 
-                    #Finds all link with domain nvd.nist.gov and makes it into a list
-                    all_links = soup.find_all('a', href = re.compile(r'https://nvd.nist.gov/vuln/detail.*'))
-                    for elem in all_links:
-                        ID = ""
-                        link = elem['href']
-                        cve_url.append(link)
-                        ID += link.rsplit('/', 1)[-1]
-                        cve_id.append(ID) 
+        #If current third party wapp name neighboring word is in banned_words. Skip it
+        #For example Wordpress Plugin does not equal Wordpress so skip it
+        for y in range(len(split_title)):
+            if split_title[y] == key:
+                if split_title[y + 1].lower() in banned_words:
+                    not_accurate = True
+                    break 
 
-                    #For each exploit, assign CVE-ID, CVE-URL, Title
-                    #However if there is no CVE-ID, skip it and don't add it to the results
-                    if len(cve_id) == 0:
-                        cprint("No details found for {}".format(i), 'white', 'on_red')
-                        continue
-                    
-                    cve_api = "https://cve.circl.lu/api/cve/"
+        if not_accurate:
+            continue
 
-                    r = requests.get(cve_api + cve_id[0])
-                    cve_data = r.json()
-                    cvss = cve_data['cvss']
-                    summary = cve_data['summary']
+        #Finds all link with domain nvd.nist.gov and makes it into a list
+        all_links = soup.find_all('a', href = re.compile(r'https://nvd.nist.gov/vuln/detail.*'))
+        for elem in all_links:
+            ID = ""
+            link = elem['href']
+            cve_url.append(link)
+            ID += link.rsplit('/', 1)[-1]
+            cve_id.append(ID) 
 
-                    exploit_database['Summary'] = summary
-                    exploit_database["CVSS-SCORE"] = cvss
-                    exploit_database["CVE-ID"] = cve_id
-                    exploit_database["CVE-URLs"] = cve_url
-                    exploit_database["Title"] = title
-                    exploit_database["Exploit-URL"] = i
-
-                    
-                    
-                    output.append(exploit_database)
+        #For each exploit, assign CVE-ID, CVE-URL, Title
+        #However if there is no CVE-ID, skip it and don't add it to the results
+        if len(cve_id) == 0:
+            cprint("No details found for {}".format(i), 'white', 'on_red')
+            continue
         
+        cve_api = "https://cve.circl.lu/api/cve/"
 
-            CVE_search()
-    return output    
+        r = requests.get(cve_api + cve_id[0])
+        cve_data = r.json()
+        cvss = cve_data['cvss']
+        summary = cve_data['summary']
 
-                
+        exploit_database['Summary'] = summary
+        exploit_database["CVSS-SCORE"] = cvss
+        exploit_database["CVE-ID"] = cve_id
+        exploit_database["CVE-URLs"] = cve_url
+        exploit_database["Title"] = title
+        exploit_database["Exploit-URL"] = i
+
+        
+        
+        output.append(exploit_database) 
+        return output             
 #Takes the output of SearchSploit and looks for the CVE-ID of the exploit if it exists
 #Output should be [{"CVE-ID": "CVE-1024", "Name": "Exploit Title", "URL":, "https://exploit-db/24324", "CVE-SCore": 7.8}]
 
@@ -175,6 +198,7 @@ if __name__ == "__main__":
                    |_|    |_|           |_|                      """)
     parser = argparse.ArgumentParser(description="Scans URL for components with exploits in Exploit-DB")
     parser.add_argument("url", help="URL to scan")
+    parser.add_argument("-f", help="Removes specific version check on CMS", action='store_true')
     args = parser.parse_args()
     url = args.url
     main(url)
