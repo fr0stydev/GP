@@ -35,7 +35,7 @@ def get_version(url: str) -> dict:
 #Ex: assets = {'Grav': None, 'WordPress': 5.0.0}
 
 def cms_checker(url: str) -> dict:
-    wappalzyer_url = "http://localhost:3000/extract?url="
+    wappalyzer_url = "http://localhost:3000/extract?url="
     lookup_url = wappalyzer_url + url
     assets = {}
     r = requests.get(lookup_url)
@@ -57,6 +57,7 @@ def cms_checker(url: str) -> dict:
 
 #Executes Searchsploit and returns the output of command as a string
 def searchsploit(assets: dict) -> dict:
+    output = []
     if len(assets) == 0:
         return  []
     for key, value in assets.items():
@@ -64,29 +65,39 @@ def searchsploit(assets: dict) -> dict:
             cms_out = check_output(["searchsploit", "-w", "--colour", key]).decode("utf-8")
             cprint("Checking results for {} {}".format(key, value), 'red')
             print(cms_out)
+            exploits = CVE_search(out, key, value)
+            #Loop through output from CVE_search [[{'Summary': 'etc', 'CVSS-ID': 3.5}, {'Summary': 'etc1', 'CVSS-ID': 3.8}]]
+            for i in exploits:
+                output.append(i) #output = [{'Summary': 'etc', 'CVSS-ID': 3.5}, {'Summary': 'etc1', 'CVSS-ID': 3.8}]
         else:
             out = check_output(["searchsploit", "-w", "--colour", key, value]).decode("utf-8")
             cprint("Checking results for {} {}".format(key, value), 'red')
             #split output ['Exploit: ------------', 'URL: -------------------', '']
             print(out)
-            return CVE_search(out, key, value) 
+            exploits = CVE_search(out, key, value)
+            for i in exploits:
+                output.append(i)
+    return output
 
 #out = output from searchsploit, key = Name, value = Version
 def CVE_search(out, key, value):
     output = []
+    exploit_database = {}
     regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 
     url = re.findall(regex,out)
 
     if len(url) == 0:
-        print('No exploits found for {} {}\n'.format(key, value))
+        if value == 'CMS':
+            cprint('No exploits found for {}'.format(key), 'green')
+        else:
+            cprint('No exploits found for {} {}\n'.format(key, value), 'green')
 
 
     url_list = [x[0] for x in url]
     headers = {'User-Agent': 'Mozilla/5.0'}
     for i in url_list:
         not_accurate = False
-        exploit_database = {}
         cve_id = []
         cve_url = []
         cvss = []
@@ -99,6 +110,7 @@ def CVE_search(out, key, value):
         #Skip CVE-Search for non exact match example: SilverStripe != Stripe so it skips it
         if key not in split_title:
             continue
+
 
         #If current third party wapp name neighboring word is in banned_words. Skip it
         #For example Wordpress Plugin does not equal Wordpress so skip it
@@ -120,6 +132,7 @@ def CVE_search(out, key, value):
             ID += link.rsplit('/', 1)[-1]
             cve_id.append(ID) 
 
+
         #For each exploit, assign CVE-ID, CVE-URL, Title
         #However if there is no CVE-ID, skip it and don't add it to the results
         if len(cve_id) == 0:
@@ -139,11 +152,10 @@ def CVE_search(out, key, value):
         exploit_database["CVE-URLs"] = cve_url
         exploit_database["Title"] = title
         exploit_database["Exploit-URL"] = i
-
+        output.append(exploit_database)
         
         
-        output.append(exploit_database) 
-        return output             
+    return output      
 #Takes the output of SearchSploit and looks for the CVE-ID of the exploit if it exists
 #Output should be [{"CVE-ID": "CVE-1024", "Name": "Exploit Title", "URL":, "https://exploit-db/24324", "CVE-SCore": 7.8}]
 
@@ -155,7 +167,9 @@ def filter(database: dict) -> dict:
     #Removes items that have CVSS-Score rated as below medium
    
     for item in database:
-        if item['CVSS-SCORE'] < 3.9:
+        if len(item) == 0:
+            continue
+        elif item['CVSS-SCORE'] < 3.9:
             continue
         else:
             data.append(item)
@@ -174,16 +188,7 @@ def to_file(data: str):
     text_file.close()
     cprint('Created a report in the current directory named output.txt', 'green')
 
-def main(url: str):
-    components = get_version(url)
-    exploits = searchsploit(components)
-    if len(exploits) == 0:
-        cprint("Cannot find any existing exploits on the site's technology stack!", 'green')
-        return
-    else:
-        sort_exploits = filter(exploits)
-        table = print_to_table(sort_exploits)
-        to_file(table)
+
 
 
 if __name__ == "__main__":
@@ -201,4 +206,14 @@ if __name__ == "__main__":
     parser.add_argument("-f", help="Removes specific version check on CMS", action='store_true')
     args = parser.parse_args()
     url = args.url
-    main(url)
+    if args.f:
+        components = cms_checker(url)
+    else:
+        components = get_version(url)
+    exploits = searchsploit(components)
+    if len(exploits) == 0:
+        cprint("Cannot find any existing exploits on the site's technology stack!", 'green')
+    else:
+        sort_exploits = filter(exploits)
+        table = print_to_table(sort_exploits)
+        to_file(table)
