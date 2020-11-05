@@ -56,7 +56,7 @@ def cms_checker(url: str) -> dict:
         
 
 #Executes Searchsploit and returns the output of command as a string
-def searchsploit(assets: dict) -> dict:
+def searchsploit(assets: dict) -> list:
     output = []
     if len(assets) == 0:
         return  []
@@ -80,7 +80,7 @@ def searchsploit(assets: dict) -> dict:
     return output
 
 #out = output from searchsploit, key = Name, value = Version
-def CVE_search(out, key, value):
+def CVE_search(out: str, key: str, value: str):
     output = []
     exploit_database = {}
     regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
@@ -161,7 +161,7 @@ def CVE_search(out, key, value):
 
 #Takes the data generated in CVE_Search() and ranks the exploit by CVSS
 #Filters the data and removes any inaccuracy EX: Wordpress does not equal Wordpress Plugin
-def filter(database: dict) -> dict:
+def filter(database: list) -> list:
     data = []
 
     #Removes items that have CVSS-Score rated as below medium
@@ -201,12 +201,12 @@ if __name__ == "__main__":
      \/  \/  \__,_|| .__/ | .__/|_____/ | .__/ |_| \___/ |_| \__|
                    | |    | |           | |                      
                    |_|    |_|           |_|                      """)
-    parser = argparse.ArgumentParser(description="Scans URL for components with exploits in Exploit-DB")
+    parser = argparse.ArgumentParser(description="Scans URL for components with exploits in Exploit-DB if version is detected")
     parser.add_argument("url", help="URL to scan")
-    parser.add_argument("-f", help="Removes specific version check on CMS", action='store_true')
+    parser.add_argument("-cms", help="Scans only for CMS with no version check", action='store_true')
     args = parser.parse_args()
     url = args.url
-    if args.f:
+    if args.cms:
         components = cms_checker(url)
     else:
         components = get_version(url)
