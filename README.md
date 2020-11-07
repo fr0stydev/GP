@@ -22,6 +22,6 @@ Ideally, this tool will scan for webapp's application and if a version is succes
 
 1. Currently if version not detected then skips it. Maybe add a flag to not skip
 2. PDF Report??
-
+3. Hostlist option to include file with defined URLs. Currently added but needs to combine all exploits found on URL into one file, currently  replaces the file
 
 
