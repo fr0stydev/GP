@@ -184,15 +184,21 @@ def print_to_table(data: list):
     return tabulate.tabulate(rows, header)
 
 #Writes to a file
-def to_file(data: str, url=None):
-    text_file = open("output.txt" , "w")
+def to_file(data: str, url=None, name=None):
+    if name != None:
+        filename = name + ".txt"
+    else:
+        filename = "output.txt"
+    
+    text_file = open(filename, "w")
     if url == None:
         text_file.write(data)
         text_file.close()
     else:
         text_file.write("Report for {} \n {} \n".format(url, data))
         text_file.close()
-    cprint('Created a report in the current directory named output.txt', 'green')
+
+    cprint('Created a report in the current directory named {}'.format(filename), 'green')
 
 
 
@@ -212,6 +218,7 @@ if __name__ == "__main__":
     parser.add_argument("-cms", help="Scans only for CMS with no version check", action='store_true')
     parser.add_argument("-f", help="Removes filtering of exploits with a CVSS lower than 3.9")
     parser.add_argument("-iL", type=open, help="Multiple scans on different URLs defined in a file separated by spaces")
+    parser.add_argument("-o", type=str, help="Set a name for output file")
     args = parser.parse_args()
     if args.iL:
         url_list = [x for x in args.iL.readlines()]
@@ -227,11 +234,12 @@ if __name__ == "__main__":
                 if args.f:
                     sort_exploits = filter(exploits, False)
                     table = print_to_table(sort_exploits)
-                    to_file(table, i)
+                    to_file(table, i, args.o)
                 else:
+                    print(args.o)
                     sort_exploits = filter(exploits)
                     table = print_to_table(sort_exploits)
-                    to_file(table, i)
+                    to_file(table, i, args.o)
     else:
         url = args.url
         if args.cms:
@@ -245,8 +253,8 @@ if __name__ == "__main__":
             if args.f:
                 sort_exploits = filter(exploits, False)
                 table = print_to_table(sort_exploits)
-                to_file(table)
+                to_file(table, None, args.o)
             else:
                 sort_exploits = filter(exploits)
                 table = print_to_table(sort_exploits)
-                to_file(table)
+                to_file(table, None, args.o)
