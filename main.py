@@ -220,6 +220,9 @@ if __name__ == "__main__":
     parser.add_argument("-iL", type=open, help="Multiple scans on different URLs defined in a file separated by spaces")
     parser.add_argument("-o", type=str, help="Set a name for output file")
     args = parser.parse_args()
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
     if args.iL:
         url_list = [x for x in args.iL.readlines()]
         for i in url_list:
