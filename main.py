@@ -215,38 +215,23 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.iL:
         url_list = [x for x in args.iL.readlines()]
-        if args.cms:
-            for i in url_list:
+        for i in url_list:
+            if args.cms:
                 components = cms_checker(i)
-                exploits = searchsploit(components)
-                if len(exploits) == 0:
-                    cprint("Cannot find any existing exploits on the URL {}".format(i), 'green')
-                else:
-                    if args.f:
-                        sort_exploits = filter(exploits, False)
-                        table = print_to_table(sort_exploits)
-                        to_file(table, i)
-                    else:
-                        sort_exploits = filter(exploits)
-                        table = print_to_table(sort_exploits)
-                        to_file(table, i)
-                
-        else:
-            for i in url_list:
+            else:
                 components = get_version(i)
-                exploits = searchsploit(components)
-                if len(exploits) == 0:
-                    cprint("Cannot find any existing exploits on the URL {}".format(i), 'green')
+            exploits = searchsploit(components)
+            if len(exploits) == 0:
+                cprint("Cannot find any existing exploits on the URL {}".format(i), 'green')
+            else:
+                if args.f:
+                    sort_exploits = filter(exploits, False)
+                    table = print_to_table(sort_exploits)
+                    to_file(table, i)
                 else:
-                    if args.f:
-                        sort_exploits = filter(exploits, False)
-                        table = print_to_table(sort_exploits)
-                        to_file(table, i)
-                    else:
-                        sort_exploits = filter(exploits)
-                        table = print_to_table(sort_exploits)
-                        to_file(table, i)
-        
+                    sort_exploits = filter(exploits)
+                    table = print_to_table(sort_exploits)
+                    to_file(table, i)
     else:
         url = args.url
         if args.cms:
