@@ -18,10 +18,17 @@ Ideally, this tool will scan for webapp's application and if a version is succes
 1. run the app.js file in wapp-local
 2. python3 main.py 
 
+## Features
+
+1. Scans a website for its technology stack and automatically finds existing exploits on Exploit-DB.
+2. -cms flag to scan specifically for CMS without version scan
+3. Pass a hostlist with -iL flag to scan multiple urls at once.
+4. Creates a report file (default=output.txt)
+5. Filters CVSS score lower than 3.9, include it by the -f tag
+
 ## Ideas
 
-1. Currently if version not detected then skips it. Maybe add a flag to not skip
-2. PDF Report??
-3. Hostlist option to include file with defined URLs. Currently added but needs to combine all exploits found on URL into one file, currently  replaces the file
+1. PDF Report
+
 
 

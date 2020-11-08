@@ -184,10 +184,14 @@ def print_to_table(data: list):
     return tabulate.tabulate(rows, header)
 
 #Writes to a file
-def to_file(data: str):
+def to_file(data: str, url=None):
     text_file = open("output.txt" , "w")
-    text_file.write(data)
-    text_file.close()
+    if url == None:
+        text_file.write(data)
+        text_file.close()
+    else:
+        text_file.write("Report for {} \n {} \n".format(url, data))
+        text_file.close()
     cprint('Created a report in the current directory named output.txt', 'green')
 
 
@@ -201,7 +205,7 @@ if __name__ == "__main__":
    \ \/  \/ // _` || '_ \ | '_ \ \___ \ | '_ \ | | / _ \ | || __|
     \  /\  /| (_| || |_) || |_) |____) || |_) || || (_) || || |_ 
      \/  \/  \__,_|| .__/ | .__/|_____/ | .__/ |_| \___/ |_| \__|
-                   | |    | |           | |    url                  
+                   | |    | |           | |                      
                    |_|    |_|           |_|                      """)
     parser = argparse.ArgumentParser(description="Scans URL for components with exploits in Exploit-DB if version is detected")
     parser.add_argument("-url", help="URL to scan")
@@ -221,11 +225,11 @@ if __name__ == "__main__":
                     if args.f:
                         sort_exploits = filter(exploits, False)
                         table = print_to_table(sort_exploits)
-                        to_file(table)
+                        to_file(table, i)
                     else:
                         sort_exploits = filter(exploits)
                         table = print_to_table(sort_exploits)
-                        to_file(table)
+                        to_file(table, i)
                 
         else:
             for i in url_list:
@@ -237,11 +241,11 @@ if __name__ == "__main__":
                     if args.f:
                         sort_exploits = filter(exploits, False)
                         table = print_to_table(sort_exploits)
-                        to_file(table)
+                        to_file(table, i)
                     else:
                         sort_exploits = filter(exploits)
                         table = print_to_table(sort_exploits)
-                        to_file(table)
+                        to_file(table, i)
         
     else:
         url = args.url
