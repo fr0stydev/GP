@@ -8,10 +8,16 @@ Create a new penetration testing tool.
 
 Ideally, this tool will scan for webapp's application and if a version is successfully detected it will perform a scan to check for existing exploits as well as give information on the exploit.
 
+## Recommendation
+
+This program works best with ParrotOS or Kali Linux  
+Using other OS will require you to install SearchSploit
+
 ## Requirements
 
 1. Nodejs <14.0.0
 2. Python3
+3. Searchsploit
 
 ## How to Use
 
