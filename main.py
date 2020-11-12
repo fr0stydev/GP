@@ -24,7 +24,6 @@ def get_version(url: str) -> dict:
                 assets[vuln['name']] = vuln['version']
             else:
                 assets[vuln['name']] = None
-
     for key, value in assets.items():
         cprint("Detected {} {} \n".format(key, value), 'green')
     return assets
@@ -46,7 +45,7 @@ def cms_checker(url: str) -> dict:
                 else:
                     assets[vuln['name']] = vuln['version']
     for key, value in assets.items():
-        if key == None:
+        if value == 'CMS':
             cprint("Detected {} but couldn't detect version".format(key), 'green')
         else:
             cprint("Detected {} {} \n".format(key, value), 'green')
@@ -62,9 +61,9 @@ def searchsploit(assets: dict) -> list:
         #If CMS does not include a version
         if value == 'CMS':
             cms_out = check_output(["searchsploit", "-w", "--colour", key]).decode("utf-8")
-            cprint("Checking results for {} {}".format(key, value), 'red')
+            cprint("Checking results for {}".format(key), 'red')
             print(cms_out)
-            exploits = CVE_search(out, key, value)
+            exploits = CVE_search(cms_out, key, value)
             #Loop through output from CVE_search [{'Summary': 'etc', 'CVSS-ID': 3.5}, {'Summary': 'etc1', 'CVSS-ID': 3.8}]
             for i in exploits:
                 output.append(i) #output = [{'Summary': 'etc', 'CVSS-ID': 3.5}, {'Summary': 'etc1', 'CVSS-ID': 3.8}]
