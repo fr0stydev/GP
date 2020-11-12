@@ -46,7 +46,7 @@ def cms_checker(url: str) -> dict:
                     assets[vuln['name']] = vuln['version']
     for key, value in assets.items():
         if value == 'CMS':
-            cprint("Detected {} but couldn't detect version".format(key), 'green')
+            cprint("Detected {} but couldn't detect its version".format(key), 'green')
         else:
             cprint("Detected {} {} \n".format(key, value), 'green')
     return assets
@@ -81,7 +81,6 @@ def searchsploit(assets: dict) -> list:
 #out = output from searchsploit, key = Name, value = Version
 def CVE_search(out: str, key: str, value: str):
     output = []
-    exploit_database = {}
     regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 
     url = re.findall(regex,out)
@@ -96,6 +95,7 @@ def CVE_search(out: str, key: str, value: str):
     url_list = [x[0] for x in url]
     headers = {'User-Agent': 'Mozilla/5.0'}
     for i in url_list:
+        exploit_database = {}
         not_accurate = False
         cve_id = []
         cve_url = []
@@ -152,7 +152,6 @@ def CVE_search(out: str, key: str, value: str):
         exploit_database["Title"] = title
         exploit_database["Exploit-URL"] = i
         output.append(exploit_database)
-        
     #output sample [{'Summary': 'etc', 'CVSS-ID': 3.5}, {'Summary': 'etc1', 'CVSS-ID': 3.8}]
     return output      
 #Takes the output of SearchSploit and looks for the CVE-ID of the exploit if it exists
