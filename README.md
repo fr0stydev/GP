@@ -22,7 +22,7 @@ Using other OS will require you to install SearchSploit
 ## How to Use
 
 1. run the app.js file in wapp-local
-2. python3 main.py 
+2. python3 main.py ``<flags>``
 
 ## Features
 
@@ -34,7 +34,8 @@ Using other OS will require you to install SearchSploit
 
 ## Ideas
 
-1. PDF Report
+1. PDF Report (?)
+2. More flags? (Removes checks for Programming Languages, Web-Servers, etc.)
 
 
 
