@@ -9,6 +9,8 @@ from termcolor import colored, cprint
 import tabulate
 
 
+search_all = True
+
 # Returns Dictionary with Key being name of service and value being version number
 def get_version(url: str) -> dict:
     wappalyzer_url = "http://localhost:3000/extract?url="
@@ -16,16 +18,32 @@ def get_version(url: str) -> dict:
     assets = {}
     r = requests.get(lookup_url)
     data = r.json()
-    for vuln in tqdm(data['technologies'], desc="Revealing the technology stack..."):
-        if vuln['name'] not in assets:
-            if vuln['version'] == None:
+    if search_all:
+        for vuln in tqdm(data['technologies'], desc="Revealing the technology stack..."):
+            if vuln['name'] not in assets:
+                if vuln['version'] == None:
+                    continue
+                elif len(vuln['version']) != 0:
+                    assets[vuln['name']] = vuln['version']
+                else:
+                    assets[vuln['name']] = None
+        for key, value in assets.items():
+            cprint("Detected {} {} \n".format(key, value), 'green')
+    else:
+        categories = ['programming-languages', 'web-servers']
+        for vuln in tqdm(data['technologies'], desc="Revealing the technology stack..."):
+            #if categories is in filters out category than skips it ex: wont check for programming-languages, web-servers
+            if vuln['categories'][0]['slug'] in categories:
                 continue
-            elif len(vuln['version']) != 0:
-                assets[vuln['name']] = vuln['version']
-            else:
-                assets[vuln['name']] = None
-    for key, value in assets.items():
-        cprint("Detected {} {} \n".format(key, value), 'green')
+            elif vuln['name'] not in assets:
+                if vuln['version'] == None:
+                    continue
+                elif len(vuln['version']) != 0:
+                    assets[vuln['name']] = vuln['version']
+                else:
+                    assets[vuln['name']] = None
+        for key, value in assets.items():
+            cprint("Detected {} {} \n".format(key, value), 'green')
     return assets
 
 #Only Checks for CMS but even if no version is detected it will save to dictionary
@@ -95,6 +113,7 @@ def CVE_search(out: str, key: str, value: str):
     url_list = [x[0] for x in url]
     headers = {'User-Agent': 'Mozilla/5.0'}
     for i in url_list:
+        print(i)
         exploit_database = {}
         not_accurate = False
         cve_id = []
@@ -106,13 +125,19 @@ def CVE_search(out: str, key: str, value: str):
         soup.prettify()
         title = soup.find('title').string
         split_title = title.split()
+        #If CMS is founded in the name itself remove it. Ex: Found: October CMS, changes it into just 'October'
+        #Main reason because 'October CMS' will be skipped in the next if statement
+        #if 'October CMS' not in 'October CMS - Upload Protection Bypass Code Execution (Metasploit)' will be True but should be False
+        split_key = key.split()
+        if 'CMS' in split_key:
+            key = split_key[0]
         #Skip CVE-Search for non exact match example: SilverStripe != Stripe so it skips it
         if key not in split_title:
             continue
 
 
         #If current third party wapp name neighboring word is in banned_words. Skip it
-        #For example Wordpress Plugin does not equal Wordpress so skip it
+        #For example Detected: Wordpress == WordPress Core but not WordPress Plugin so 'Plugin' is checked
         for y in range(len(split_title)):
             if split_title[y] == key:
                 if split_title[y + 1].lower() in banned_words:
@@ -152,6 +177,7 @@ def CVE_search(out: str, key: str, value: str):
         exploit_database["Title"] = title
         exploit_database["Exploit-URL"] = i
         output.append(exploit_database)
+        print(output)
     #output sample [{'Summary': 'etc', 'CVSS-ID': 3.5}, {'Summary': 'etc1', 'CVSS-ID': 3.8}]
     return output      
 #Takes the output of SearchSploit and looks for the CVE-ID of the exploit if it exists
@@ -203,24 +229,26 @@ def to_file(data: str, url=None, name=None):
 
 if __name__ == "__main__":
     print("""
- __          __                   _____         _         _  _   
- \ \        / /                  / ____|       | |       (_)| |  
-  \ \  /\  / /__ _  _ __   _ __ | (___   _ __  | |  ___   _ | |_ 
-   \ \/  \/ // _` || '_ \ | '_ \ \___ \ | '_ \ | | / _ \ | || __|
-    \  /\  /| (_| || |_) || |_) |____) || |_) || || (_) || || |_ 
-     \/  \/  \__,_|| .__/ | .__/|_____/ | .__/ |_| \___/ |_| \__|
-                   | |    | |           | |                      
-                   |_|    |_|           |_|                      """)
+| |  | |                       /  ___|     | |     (_) |  
+| |  | | __ _ _ __  _ __   __ _\ `--. _ __ | | ___  _| |_ 
+| |/\| |/ _` | '_ \| '_ \ / _` |`--. \ '_ \| |/ _ \| | __|
+\  /\  / (_| | |_) | |_) | (_| /\__/ / |_) | | (_) | | |_ 
+ \/  \/ \__,_| .__/| .__/ \__,_\____/| .__/|_|\___/|_|\__|
+             | |   | |               | |                  
+             |_|   |_|               |_|             """)
     parser = argparse.ArgumentParser(description="Scans URL for components with exploits in Exploit-DB if version is detected")
     parser.add_argument("-url", help="URL to scan")
     parser.add_argument("-cms", help="Scans only for CMS with no version check", action='store_true')
     parser.add_argument("-f", help="Removes filtering of exploits with a CVSS lower than 3.9")
     parser.add_argument("-iL", type=open, help="Multiple scans on different URLs defined in a file separated by spaces")
     parser.add_argument("-o", type=str, help="Set a name for output file")
+    parser.add_argument("-quick", help="Removes checking for programming-languages, web-servers", action='store_true')
     args = parser.parse_args()
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
+    if args.quick:
+        search_all = False
     if args.iL:
         url_list = [x for x in args.iL.readlines()]
         for i in url_list:
@@ -242,20 +270,24 @@ if __name__ == "__main__":
                     table = print_to_table(sort_exploits)
                     to_file(table, i, args.o)
     else:
-        url = args.url
-        if args.cms:
-            components = cms_checker(url)
-        else:
-            components = get_version(url)
-        exploits = searchsploit(components)
-        if len(exploits) == 0:
-            cprint("Cannot find any existing exploits on the site's technology stack!", 'green')
-        else:
-            if args.f:
-                sort_exploits = filter(exploits, False)
-                table = print_to_table(sort_exploits)
-                to_file(table, None, args.o)
+        if args.url:
+            url = args.url
+            if args.cms:
+                components = cms_checker(url)
             else:
-                sort_exploits = filter(exploits)
-                table = print_to_table(sort_exploits)
-                to_file(table, None, args.o)
+                components = get_version(url)
+            exploits = searchsploit(components)
+            if len(exploits) == 0:
+                cprint("Cannot find any existing exploits on the site's technology stack!", 'green')
+            else:
+                if args.f:
+                    sort_exploits = filter(exploits, False)
+                    table = print_to_table(sort_exploits)
+                    to_file(table, None, args.o)
+                else:
+                    sort_exploits = filter(exploits)
+                    table = print_to_table(sort_exploits)
+                    to_file(table, None, args.o)
+        else:
+            parser.print_help(sys.stderr)
+            sys.exit(1)
